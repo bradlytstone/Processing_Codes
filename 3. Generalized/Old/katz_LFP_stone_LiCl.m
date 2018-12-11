@@ -1,0 +1,198 @@
+function [T1, T2, T3, T4, F] = katz_LFP_stone_LiCl(dirname)
+
+%This function takes in one input DIRNAME and flips through each *.mat file
+%(which is one animal, one day of recording, and one taste) within the
+%given directory to perform Welch's power spectral density estimate for
+%each taste period in reference to stimulus onset (Pre [-750ms,-250ms],
+%Early [250ms,750ms], and Late [1250ms,1750ms]). The parameters used for
+%PWELCH function are detailed herein, however, the user can change them
+%using lines 51-53. The outputs are PRE, EARLY, LATE, and F.
+
+%DIRNAME = directory name that files are located in
+%PRE = output array of PSD estimates for pre-taste period
+%EARLY = output array of PSD estimates for early-taste period
+%LATE = output array of PSD estimates for late-taste period
+%F = output vector of Frequency for given PWELCH parameters
+
+%Load 4taste_saline data
+%saline_struct = load('BS23_4Tastes_171219_092635_all_tastes.mat'); 
+
+%Create struct variable
+%sal = saline_struct.all_tastes;
+
+%Open up 4taste_LiCl data (double-click file)
+%Save Saline data into struct and rename combined file with saline being
+%Session_1 (second session)
+%[all_tastes(:).Session_1] = sal.Session_0; Affective condition
+%save('BS23_Combined_all_tastes.mat', 'all_tastes');
+
+matfile = dir([dirname filesep '*_all_tastes.mat']);
+animal = dirname(strfind(dirname,'BS'):strfind(dirname,'BS')+3);
+T1 = []; T2 = []; T3 = []; T4 = [];
+Pre1 = []; Early1 = []; Late1 = [];
+Pre2 = []; Early2 = []; Late2 = [];
+Pre3 = []; Early3 = []; Late3 = [];
+Pre4 = []; Early4 = []; Late4 = [];
+PPreone_sec1 = []; PPreone_sec2 = []; PPreone_sec3 = []; PPreone_sec4 = [];
+PPostone_sec1 = []; PPostone_sec2 = []; PPostone_sec3 = []; PPostone_sec4 = [];
+
+% Construct a Question Dialog Box with 2 options for condition plotting
+choice = questdlg('Would you like to plot two conditions?', ...
+	'Plotting Menu', ...
+	'Yes','No', 'Maybe');
+
+%Contruct an input box for Taste information and LFP time length
+prompt_2 = {'Taste 1','Taste 2','Taste 3','Taste 4', 'LFP Start Time (ms)', 'LFP End Time (ms)'}; dlg_title_2 = 'Plot Labeling:'; num_lines_2 = 6;
+defaultans_2 = {'NaCl','Sucrose', 'Citric Acid', 'QHCl', '2000', '7000'}; labels_2 = inputdlg(prompt_2,dlg_title_2,num_lines_2,defaultans_2);
+
+%Flip through each matlab output file and contruct merged arrays
+for file =1:length(matfile')
+    working_mat = load(matfile(file).name);
+    disp(['Working on file ' matfile(file).name]); %Displays working file
+    
+    array_set = cell2mat(fieldnames(working_mat));
+    sessions = size(cell2mat(fieldnames(working_mat.(array_set))),1);
+    
+    %Flip through trials
+    for x=1:sessions(1)
+        %Create array for session names
+        sess_names = []; Name={['Whole - Session ' num2str(x)]}; sess_names = [sess_names, Name];
+        PWhole1 = []; PWhole2 = []; PWhole3 = []; PWhole4 = [];
+        SWhole1 = []; SWhole2 = []; SWhole3 = []; SWhole4 = []; 
+        session_name = cell2mat(fieldnames(working_mat.(array_set)));
+        session_data = working_mat.(array_set).(session_name(x,:));
+        array_sizes = size(working_mat.(array_set).(session_name(x,:)));
+        tastes = array_sizes(1); yvalues = [];
+                
+        for taste=1:tastes
+            PWhole_all = []; 
+            taste_data = squeeze(working_mat.(array_set).(session_name(x,:))(taste,:,:,:));
+            trials = size(taste_data(:,:,:,:),(2));  %identifies number of trials for this taste
+            LFP_array = squeeze(taste_data(1,:,:)); %collapses across electrodes
+            
+            for trial=1:trials
+           
+                %Run pwelch (Welch's power spectral density estimate) with specified parameters
+                %Parameters
+                srate = 1000; %uses sample sizes of of taste time as dps in length
+                p_window = 250; %assigns window criteria to divide the signal (length you input) into segments of this size
+                overlap = [p_window/2]; %multiplied by a hamming window with 50% overlap
+                dft_length = 5000; % using 8000 DFT points
+
+                %Assumes -2000ms/+5000ms in reference to stimulus onset
+                %PSD Estimations
+                [PWhole, F_whole] = pwelch(LFP_array(trial,str2num(labels_2{5}):str2num(labels_2{6})),p_window,overlap,dft_length,srate);
+                [PPre,F] = pwelch(LFP_array(trial,1251:1750),p_window,overlap,dft_length,srate);
+                [PEarly,F] = pwelch(LFP_array(trial,2251:2750),p_window,overlap,dft_length,srate);
+                [PLate,F] = pwelch(LFP_array(trial,3251:3750),p_window,overlap,dft_length,srate);
+                [PPreone_sec,F] = pwelch(LFP_array(trial,1000:2000),length(1000:2000),[],dft_length,srate);
+                [PPostone_sec,F] = pwelch(LFP_array(trial,2000:3000),length(2000:3000),[],dft_length,srate);
+                        
+                %Store in arrays
+                switch taste
+                    case 1
+                        PWhole1=[PWhole1;PWhole'];
+                        Pre1=[Pre1;PPre'];
+                        Early1=[Early1;PEarly'];
+                        Late1=[Late1;PLate'];
+                        PPreone_sec1= [PPreone_sec1;PPreone_sec']; 
+                        PPostone_sec1= [PPostone_sec1;PPostone_sec'];
+                        PWhole_all =[PWhole_all;PWhole'];
+                    case 2
+                        PWhole2=[PWhole2;PWhole'];
+                        Pre2=[Pre2;PPre'];
+                        Early2=[Early2;PEarly'];
+                        Late2=[Late2;PLate'];
+                        PPreone_sec2= [PPreone_sec2;PPreone_sec']; 
+                        PPostone_sec2= [PPostone_sec2;PPostone_sec'];
+                        PWhole_all = [PWhole_all;PWhole'];
+                    case 3
+                        PWhole3=[PWhole3;PWhole'];
+                        Pre3=[Pre3;PPre'];
+                        Early3=[Early3;PEarly'];
+                        Late3=[Late3;PLate'];
+                        PPreone_sec3= [PPreone_sec3;PPreone_sec']; 
+                        PPostone_sec3= [PPostone_sec3;PPostone_sec'];
+                        PWhole_all = [PWhole_all;PWhole'];
+                    case 4
+                        PWhole4=[PWhole4;PWhole'];
+                        Pre4=[Pre4;PPre'];
+                        Early4=[Early4;PEarly'];
+                        Late4=[Late4;PLate'];
+                        PPreone_sec4= [PPreone_sec4;PPreone_sec']; 
+                        PPostone_sec4= [PPostone_sec4;PPostone_sec'];
+                        PWhole_all = [PWhole_all;PWhole'];
+                end %end pwelch loop
+                
+            end %end trial loop
+            
+            % Handle plotting for each condition/taste
+            switch choice
+                case 'Yes'
+                    disp(['Plotting ' num2str(x) ' Conditions.']);
+                    Name={['Whole - Session ' num2str(x)]};
+                    figure(1); ax(taste) = subplot(2,2,taste); plot(F,mean(PWhole_all)/10^6); hold on; xlim([3 40]); hold on;
+                    xlabel('Frequency (Hz)');ylabel('Power Spectral Density (mV^{2}/Hz)'); title(labels_2(taste));
+                case 'No'
+                    disp(['Plotting one plot with Taste ' num2str(taste(1)) ' of ' num2str(tastes) ' for you!']);
+                    Name={['Whole - Session ' num2str(x)]};
+                    figure(2); ax(taste) = plot(taste); plot(F,mean(PWhole_all)/10^6); hold on; xlim([3 40]); hold on;
+                    xlabel('Frequency (Hz)');ylabel('Power Spectral Density (mV^{2}/Hz)');
+            end %end condtion response switch
+                
+        end %end taste loop
+            
+    end %end session loop
+    
+            %Flip through the subplot figure and place legend
+            %information
+            switch choice
+                case 'Yes'
+                    prompt_1 = {'Condition 1','Condition 2'}; dlg_title_1 = 'Condition Labeling:'; num_lines_1 = 2;
+                    defaultans_1 = {'Negative (LiCl [0.15M])','Healthy (Saline)'}; labels_1 = inputdlg(prompt_1,dlg_title_1,num_lines_1,defaultans_1);    
+                    for taste=1:tastes
+                       legend(ax(taste),[labels_1(1), labels_1(2)]);
+                    end %end subplot legend loop
+                    set(gcf, 'position', [238,245,833,617]);
+                case 'No'
+                    fig_hand = findobj('Type','Line');
+                    legend([fig_hand(7), fig_hand(5), fig_hand(3), fig_hand(1)], [labels_2(1), labels_2(2), labels_2(3), labels_2(4)]);
+            end %End legend response switch
+            
+        %Plots 4 subplots based on time from stimulus onset per taste 
+        figure(3); subplot(2,2,1); plot(F,mean(Pre1)/10^6,'b-'); hold on; plot(F,mean(Early1)/10^6,'r-'); plot(F,mean(Late1)/10^6,'k-');
+        xlim([3 40]); legend('Pre-taste (-750ms,-250ms)','Early taste (250ms,750ms)','Late taste (1250ms,1750ms)','Location','northeast');
+        xlabel('Frequency (Hz)');ylabel('Power Spectral Density (mV^{2}/Hz)'); title(labels_2{1});
+
+        figure(3); subplot(2,2,2); plot(F,mean(Pre2)/10^6,'b-'); hold on; plot(F,mean(Early2)/10^6,'r-'); plot(F,mean(Late2)/10^6,'k-');
+        xlim([3 40]); legend('Pre-taste (-750ms,-250ms)','Early taste (250ms,750ms)','Late taste (1250ms,1750ms)','Location','northeast');
+        xlabel('Frequency (Hz)');ylabel('Power Spectral Density (mV^{2}/Hz)'); title(labels_2{2});
+
+        figure(3); subplot(2,2,3); plot(F,mean(Pre3)/10^6,'b-'); hold on; plot(F,mean(Early3)/10^6,'r-'); plot(F,mean(Late3)/10^6,'k-');
+        xlim([3 40]); legend('Pre-taste (-750ms,-250ms)','Early taste (250ms,750ms)','Late taste (1250ms,1750ms)','Location','northeast');
+        xlabel('Frequency (Hz)');ylabel('Power Spectral Density (mV^{2}/Hz)'); title(labels_2{3});
+
+        figure(3); subplot(2,2,4); plot(F,mean(Pre4)/10^6,'b-'); hold on; plot(F,mean(Early4)/10^6,'r-'); plot(F,mean(Late4)/10^6,'k-');
+        xlim([3 40]); legend('Pre-taste (-750ms,-250ms)','Early taste (250ms,750ms)','Late taste (1250ms,1750ms)','Location','northeast');
+        xlabel('Frequency (Hz)');ylabel('Power Spectral Density (mV^{2}/Hz)'); title(labels_2{4});
+                
+end %end matlab file loop
+
+%Get the max y-axis for all plots in figure
+for i=1:4
+     figure(1); subplot(2,2,i); mygca(i) = gca;
+     yvalues = cat(1,yvalues,get(mygca,'Ylim'));
+end;
+maxset =max(cell2mat(yvalues)); yval = maxset(:,2); 
+
+%Set y-axis to be matched to max for all subplots
+for i=1:4
+    figure(1); subplot(2,2,i); ylim([0 yval]);
+end;
+
+%Set print preferences and save the file as such
+figure(1); suptitle([animal ' ' labels_2{5} 'ms-' labels_2{6} 'ms']);
+h=gcf; set(h,'PaperPositionMode','auto'); set(h,'PaperOrientation','landscape');
+print(gcf, [animal '_cond_' num2str(tastes) 'tastes_' labels_2{5} '_' labels_2{6} 'ms.pdf'],'-dpdf', '-r0');
+
+end %end function

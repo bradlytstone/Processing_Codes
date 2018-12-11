@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Mon May 14 13:35:02 2018
+
+@author: bradly
+"""
+
+import numpy as np
+import easygui
+import matplotlib.pylab as plt
+from scipy.ndimage.filters import gaussian_filter1d
+
+#Load appropriate files
+licl_pearson = np.load("r_pearson_LiCl.npy")
+saline_pearson = np.load("r_pearson_Saline.npy")
+healthy_pearson = np.load("r_pearson_Jian_you.npy")
+
+#Create xtick range (default = 0ms-2000ms post stimulus)
+x = np.arange(0,2001,25)
+
+#Plot r_pearson results
+plt.figure()
+plt.plot(x, np.mean(licl_pearson[0,80:161,:]**2,axis=1), label = "Negative (LiCl)")
+plt.plot(x, np.mean(saline_pearson[0,80:161,:]**2,axis=1), label = "Negative (Saline)")
+plt.plot(x, np.mean(healthy_pearson[0,80:161,:]**2,axis=1), label = "Control")
+plt.legend(loc= 'upper left', fontsize = 9)
+
+plt.title('Pearson $r^2$ with palatability ranks, Window(ms): 250, Step(ms): 25')
+plt.xlabel('Time from stimulus (ms)')
+plt.ylabel('Average Pearson $r^2$')
+
+plt.savefig('r_pearson.png', bbox_inches = 'tight')
+plt.close('all') 
+
+# Ask the user for the standard deviation to be used in smoothing the palatability correlation curves using a Gaussian
+sigma = easygui.multenterbox(msg = "Enter the standard deviation to use while Gaussian smoothing the palatability correlation plots (5 is good for 250ms bins)", fields = ['sigma'])
+sigma = int(sigma[0])
+
+#Plot smoothed r_pearson results
+plt.figure()
+plt.plot(x, gaussian_filter1d(np.mean(licl_pearson[0,80:161,:]**2,axis=1), sigma=sigma), label = "Negative (LiCl)")
+plt.plot(x, gaussian_filter1d(np.mean(saline_pearson[0,80:161,:]**2,axis=1), sigma=sigma), label = "Negative (Saline)")
+plt.plot(x, gaussian_filter1d(np.mean(healthy_pearson[0,80:161,:]**2,axis=1), sigma=sigma), label = "Control")
+plt.legend(loc= 'upper left', fontsize = 9)
+
+plt.title('Pearson $r^2$ with palatability ranks, smoothing std:%1.1f' % sigma + '\n' + 'Window(ms): 250, Step(ms): 25')
+plt.xlabel('Time from stimulus (ms)')
+plt.ylabel('Average Pearson $r^2$')
+
+plt.savefig('r_pearson_smoothed.png', bbox_inches = 'tight')
+plt.close('all') 

@@ -1,0 +1,49 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Jul 20 14:25:55 2017
+
+@author: bradly
+"""
+
+import xlrd
+import easygui
+import os
+import numpy as np
+from scipy.signal import periodogram
+
+#Get name of directory where the data files and hdf5 file sits, and change to that directory for processing
+dir_name = easygui.diropenbox()
+os.chdir(dir_name)
+
+#Look for the hdf5 file in the directory
+file_list = os.listdir('./')
+
+for files in file_list:
+    if files[-15:] == '_dur_(N=9).xlsx':
+        book = xlrd.open_workbook(dir_name + '/' + files)
+        print(book.nsheets)
+        print(book.sheet_names())
+                
+        for i in range(book.nsheets):
+            working_sheet = book.sheet_by_index(i)
+            
+            if files[:+3] == 'Pre':
+                p_prefix = 'pre_p_' + str(i+1)
+                p_prefix2 = 'pre_dur_' + str(i+1)
+                f_prefix = 'pre_f_' + str(i+1)
+            elif files[:+3] == 'Ear':
+                p_prefix = 'early_p_' + str(i+1)
+                p_prefix2 = 'early_dur_' + str(i+1)
+                f_prefix = 'early_f_' + str(i+1)
+            elif files[:+3] == 'Lat':
+                p_prefix = 'late_p_' + str(i+1)
+                p_prefix2 = 'late_dur_' + str(i+1)
+                f_prefix = 'late_f_' + str(i+1)
+            
+            data = [] #make a data store
+            for i in range(working_sheet.nrows):
+              data.append(working_sheet.row_values(i))
+            vars()[str(p_prefix2)]= np.asarray(data)
+            FFT_data = np.asarray(data)
+            [vars()[str(f_prefix)], vars()[str(p_prefix)]]= periodogram(np.float64(FFT_data[:,1:]), fs = 1000.0, return_onesided=True)

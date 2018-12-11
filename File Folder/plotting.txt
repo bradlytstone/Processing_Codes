@@ -1,0 +1,39 @@
+%loop through PSD data to create averages across trials
+for i=1:length(p_NaCl_on(1,:)),
+    p_NaCl_on(16,i) = mean(p_NaCl_on(1:length(p_NaCl_on(:,1)),i));
+end;
+for i=1:length(p_NaCl_off(1,:)),
+    p_NaCl_off(16,i) = mean(p_NaCl_off(1:length(p_NaCl_off(:,1)),i));
+end;
+for i=1:length(p_Quinine_on(1,:)),
+    p_Quinine_on(16,i) = mean(p_Quinine_on(1:length(p_Quinine_on(:,1)),i));
+end;
+for i=1:length(p_Quinine_off(1,:)),
+    p_Quinine_off(16,i) = mean(p_Quinine_off(1:length(p_Quinine_off(:,1)),i));
+end;
+for i=1:length(p_Sucrose_on(1,:)),
+    p_Sucrose_on(16,i) = mean(p_Sucrose_on(1:length(p_Sucrose_on(:,1)),i));
+end;
+for i=1:length(p_Sucrose_off(1,:)),
+    p_Sucrose_off(16,i) = mean(p_Sucrose_off(1:length(p_Sucrose_off(:,1)),i));
+end;
+for i=1:length(p_Citric_Acid_on(1,:)),
+    p_Citric_Acid_on(16,i) = mean(p_Citric_Acid_on(1:length(p_Citric_Acid_on(:,1)),i));
+end;
+for i=1:length(p_Citric_Acid_off(1,:)),
+    p_Citric_Acid_off(16,i) = mean(p_Citric_Acid_off(1:length(p_Citric_Acid_off(:,1)),i));
+end;
+
+%Plot
+figure(1); subplot(2,2,1); hold on; plot(f_NaCl_on,p_NaCl_on(16,:)); hold on; plot(f_NaCl_off,p_NaCl_off(16,:));
+yonmax = max((p_NaCl_on(16,:))); yoffmax = max((p_NaCl_off(16,:))); ylim = max([yonmax,yoffmax]); axis([0 25 -1 ylim]);
+xlabel('Frequency (Hz)');ylabel('Power Spectral Density (mV^{2}/Hz)'); legend('NaCl - Laser On (15 Trials)','NaCl - Laser Off (15 Trials)','Location','northeast');
+
+
+hold on;
+plot(f_NaCl,P_NaCl(31,:));
+hold on;
+plot(f_LiCl,P_LiCl(61,:));
+hold on;
+plot(f_W2,P_water2(16,:));
+hold on;

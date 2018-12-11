@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Jul 20 11:56:57 2017
+
+@author: bradly
+"""
+
+#Import necessary tools
+import numpy as np
+import easygui
+import tables
+import os
+import matplotlib.pyplot as plt
+from scipy import signal
+from scipy.signal import periodogram
+
+#Get name of directory where the data files and hdf5 file sits, and change to that directory for processing
+dir_name = easygui.diropenbox()
+os.chdir(dir_name)
+
+#Look for the hdf5 file in the directory
+file_list = os.listdir('./')
+hdf5_name = ''
+for files in file_list:
+	if files[-2:] == 'h5':
+		hdf5_name = files
+
+#Open the hdf5 file and create list of child paths
+hf5 = tables.open_file(hdf5_name, 'r+')
+
+#Extract arrays and perform FFTs based on taste and laser duration
+t_0_dur_1 = hf5.root.LFP_Lasers.taste_0.laser_combos_0_0[:]
+t_0_dur_2 = hf5.root.LFP_Lasers.taste_0.laser_combos_500_0[:]
+t_0_dur_3 = hf5.root.LFP_Lasers.taste_0.laser_combos_500_700[:]
+t_0_dur_4 = hf5.root.LFP_Lasers.taste_0.laser_combos_500_1400[:]
+
+t_1_dur_1 = hf5.root.LFP_Lasers.taste_1.laser_combos_0_0[:]
+t_1_dur_2 = hf5.root.LFP_Lasers.taste_1.laser_combos_500_0[:]
+t_1_dur_3 = hf5.root.LFP_Lasers.taste_1.laser_combos_500_700[:]
+t_1_dur_4 = hf5.root.LFP_Lasers.taste_1.laser_combos_500_1400[:]
+
+t_2_dur_1 = hf5.root.LFP_Lasers.taste_2.laser_combos_0_0[:]
+t_2_dur_2 = hf5.root.LFP_Lasers.taste_2.laser_combos_500_0[:]
+t_2_dur_3 = hf5.root.LFP_Lasers.taste_2.laser_combos_500_700[:]
+t_2_dur_4 = hf5.root.LFP_Lasers.taste_2.laser_combos_500_1400[:]
+
+t_3_dur_1 = hf5.root.LFP_Lasers.taste_3.laser_combos_0_0[:]
+t_3_dur_2 = hf5.root.LFP_Lasers.taste_3.laser_combos_500_0[:]
+t_3_dur_3 = hf5.root.LFP_Lasers.taste_3.laser_combos_500_700[:]
+t_3_dur_4 = hf5.root.LFP_Lasers.taste_3.laser_combos_500_1400[:]
+
+#Collapse trials by taste and perform FFTs
+all_tastes_dur_1 = np.concatenate((t_0_dur_1,t_1_dur_1,t_2_dur_1,t_3_dur_1),axis=0)
+all_tastes_dur_2 = np.concatenate((t_0_dur_2,t_1_dur_2,t_2_dur_2,t_3_dur_2),axis=0)
+all_tastes_dur_3 = np.concatenate((t_0_dur_3,t_1_dur_3,t_2_dur_3,t_3_dur_3),axis=0)
+all_tastes_dur_4 = np.concatenate((t_0_dur_4,t_1_dur_4,t_2_dur_4,t_3_dur_4),axis=0)
+
+
+#Parse out collaposed datasets (laser combos) into taste processing time frames
+pre = 1249      #-750ms in reference to stim onset
+early = 2249    #+250ms in reference to stim onset
+late = 3249     #+1250ms in reference to stim onset
+
+pre_dur_1 = all_tastes_dur_1[:,pre:pre+500]
+pre_dur_2 = all_tastes_dur_2[:,pre:pre+500]
+pre_dur_3 = all_tastes_dur_3[:,pre:pre+500]
+pre_dur_4 = all_tastes_dur_4[:,pre:pre+500]
+
+early_dur_1 = all_tastes_dur_1[:,early:early+500]
+early_dur_2 = all_tastes_dur_2[:,early:early+500]
+early_dur_3 = all_tastes_dur_3[:,early:early+500]
+early_dur_4 = all_tastes_dur_4[:,early:early+500]
+
+late_dur_1 = all_tastes_dur_1[:,late:late+500]
+late_dur_2 = all_tastes_dur_2[:,late:late+500]
+late_dur_3 = all_tastes_dur_3[:,late:late+500]
+late_dur_4 = all_tastes_dur_4[:,late:late+500]
